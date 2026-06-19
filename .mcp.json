@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--executablePath",
+        "/usr/bin/google-chrome-stable",
+        "--userDataDir",
+        "/home/hodlgap/.cache/chrome-devtools-mcp/chrome-profile",
+        "--chromeArg=--ozone-platform=wayland",
+        "--chromeArg=--window-size=1440,900"
+      ],
+      "env": {}
+    }
+  }
+}
