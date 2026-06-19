@@ -136,9 +136,11 @@ For EACH candidate video:
       and participants. Output is per-VIDEO.
    b. GUESTS (guests-only): identify the GUEST speaker(s) who APPEAR (have dialogue) —
       NOT the host/channel (org or recurring panel), NOT merely-mentioned people. For
-      each guest, try to resolve their X/LinkedIn by name + corroborating role (use
-      the browser to search; CONFIDENT-ONLY — if you cannot corroborate, leave unfound,
-      never guess). For a guest with a confidently-resolved handle, append to
+      each guest, FIRST require they are THEMSELVES a genuine AI person/operator
+      (founder/researcher/builder/exec in AI) — a non-AI guest (politician, generic
+      celebrity/exec) is listed in the digest but NOT appended. For a qualifying AI
+      guest, resolve their X/LinkedIn by name + corroborating role (browser search;
+      CONFIDENT-ONLY — if you cannot corroborate, leave unfound, never guess), then append to
       "$GUESTDISC": {"platform":"x"|"linkedin","handle"|"id":"<resolved>","name":"<name>","kind":"person","role_org":"<role>"}.
       List unresolved guests in the digest but do not append them.
    c. DISCOVERY (byproduct): navigate to https://www.youtube.com/watch?v=<video_id>
