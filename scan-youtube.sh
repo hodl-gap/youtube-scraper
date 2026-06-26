@@ -170,7 +170,7 @@ For EACH candidate video:
       {"video_id":"<rec_id>","title":"<title>","age":"<age>","channel_name":"<name>","kind":"person"|"organization"}
       (channels are resolved downstream from the video id — do NOT add handles).
 5. Append the candidate video (valuable or not) to "$RAWFILE" as JSONL:
-   {"id":"<video_id>","platform":"youtube","channel":"<channel>","title":"<title>","label":"VALUABLE"|"SKIP","reason":"<=12 words","source":"channel-scan","scraped_at":"$STAMP"}
+   {"id":"<video_id>","platform":"youtube","channel":"<channel>","title":"<title>","label":"VALUABLE"|"SKIP","reason":"<=12 words","summary":"<for VALUABLE: the SAME 3-5 sentence AI-focused summary you wrote to the digest, so the daily brief can show the CONTENT not just the title; for SKIP: empty string>","source":"channel-scan","scraped_at":"$STAMP"}
 
 Finally print a table: each candidate -> pre-filter, transcript?, valuable?, guests added, channels discovered.
 EOF
