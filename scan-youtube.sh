@@ -29,7 +29,7 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
 
-NMAX=4; PER_CH=2; DISC_TX=3; MIN_SUBS=1000
+NMAX=4; PER_CH=2; DISC_TX=3; MIN_SUBS=1000; RECENCY_DAYS=14
 PEOPLE_DB="${PEOPLE_DB:-$DIR/../people-db/people.json}"
 RUBRIC="${RUBRIC:-$DIR/../people-db/judge_prompt.md}"
 PDB_DIR="$(dirname "$PEOPLE_DB")"
@@ -45,6 +45,7 @@ while [[ $# -gt 0 ]]; do
     --per-channel) PER_CH="$2"; shift 2 ;;
     --disc-tx) DISC_TX="$2"; shift 2 ;;
     --min-subs) MIN_SUBS="$2"; shift 2 ;;
+    --recency-days) RECENCY_DAYS="$2"; shift 2 ;;
     -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
     *) echo "Unknown arg: $1" >&2; exit 1 ;;
   esac
@@ -75,13 +76,27 @@ for fp in glob.glob(os.path.join(sys.argv[1],"youtube-*.jsonl")):
 print("\n".join(sorted(seen)))
 PY
 
+CUTOFF_YMD="$(date -d "-${RECENCY_DAYS} days" +%Y%m%d)"
+
 # STEP 0 (deterministic): list NEW candidate videos per channel (newest-first, bounded).
-python3 - "$CHANNELS" "$SEEN" "$PER_CH" "$NMAX" > "$CANDS" <<'PY'
+# Recency gate: drop tracked-channel videos older than RECENCY_DAYS (same <=2wk window as
+# discovery) so stale back-catalog never gets transcribed or into the digest.
+python3 - "$CHANNELS" "$SEEN" "$PER_CH" "$NMAX" "$CUTOFF_YMD" > "$CANDS" <<'PY'
 import sys, json, subprocess
-chf, seenf, per_ch, nmax = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
+chf, seenf, per_ch, nmax, cutoff = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
 seen = set(l.strip() for l in open(seenf, encoding="utf-8") if l.strip())
 chans = json.load(open(chf, encoding="utf-8"))["channels"]
-out = []
+
+def upload_ymd(vid):
+    try:
+        r = subprocess.run(["yt-dlp", "--no-warnings", "--print", "%(upload_date)s",
+                            "https://www.youtube.com/watch?v=" + vid],
+                           capture_output=True, text=True, timeout=60)
+        return (r.stdout or "").strip()
+    except Exception:
+        return ""
+
+out, stale = [], 0
 for c in chans:
     if len(out) >= nmax: break
     url = (c.get("url") or f"https://www.youtube.com/{c['channel']}").rstrip("/") + "/videos"
@@ -96,11 +111,15 @@ for c in chans:
         if "\t" not in line: continue
         vid, title = line.split("\t", 1)
         if vid in seen: continue          # already processed -> not new
+        ymd = upload_ymd(vid)
+        if ymd.isdigit() and ymd < cutoff:  # older than recency window
+            stale += 1; break               # newest-first: the rest are older -> stop channel
         out.append({"channel": c["channel"], "channel_id": c.get("channel_id"),
                     "video_id": vid, "title": title})
         got += 1
         if got >= per_ch or len(out) >= nmax: break
 print("\n".join(json.dumps(o, ensure_ascii=False) for o in out))
+sys.stderr.write(f"[step0] skipped {stale} stale (>{cutoff}) tracked-channel video(s)\n")
 PY
 
 NCAND=$(grep -c . "$CANDS" || true)
